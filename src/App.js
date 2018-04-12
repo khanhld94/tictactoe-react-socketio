@@ -3,8 +3,80 @@ import logo from './logo.svg';
 import './App.css';
 import socketIOClient from 'socket.io-client'
 
+class Menu extends Component{
+    constructor(props,context){
+        super(props,context)
+        this.state={
+            room: null,
+            new: false,
+            turn: 1
+        }
+        this.getTurn = this.getTurn.bind(this)
+        this.resetTurn = this.resetTurn.bind(this)
+    }
+    join(){
+        this.setState({
+            room: document.getElementById("room_id").value,
+            new: true
+        })
+    }
+    changeRoom(){
+        this.setState({
+            room: "",
+            new: false
+        })
+    }
+    getTurn(x){
+        this.setState({
+            turn: x
+        })
+    }
+    resetTurn(){
+        this.setState({
+            turn: 1
+        })
+    }
+    render(){
+        if(this.state.new){
+            return(
+                <div className="App-intro">
+                <div className="tic-tac-toe--field">
+                <div className="tic-tac-toe--cells-matrix">
+                <TicTacToe room={this.state.room} getTurn={this.getTurn} resetTurn={this.resetTurn}/>
+            </div>
+            </div>
+            <div className="joinboard">
+                <button className="joinotherbutton" onClick={() => this.changeRoom()}>Join Other Room</button>
+            <div>
+            <div>
+            { this.state.turn === 1 ? (
+                <p>Turn: O</p>
+        ) : (
+            <p>Turn: X</p>
+        )
+        }
+        </div>
+            </div>
+            </div>
+            </div>
+        )
+        }
+        else{
+            return(
+                <div className="App-intro">
+                <div className="tic-tac-toe--field">
+                <div className="tic-tac-toe--cells-matrix">
+                <input type="text" id="room_id"></input>
+                <button className="btn btn-primary" onClick={()=> this.join()} style={{marginLeft: "0"}}>JOIN</button>
+            </div>
+            </div>
 
-class Matrix extends Component{
+            </div>
+        )
+        }
+    }
+}
+class TicTacToe extends Component{
     constructor(props,context){
         super(props,context);
         let arr = [];
@@ -16,20 +88,27 @@ class Matrix extends Component{
             init_matrix: arr,
             turn: 1,
             gameOver: false,
-            endpoint: "https://mighty-taiga-45737.herokuapp.com",
+            // endpoint: "http://localhost:4001",
+            socket: socketIOClient("https://mighty-taiga-45737.herokuapp.com/")
         }
-        this.socket = socketIOClient(this.state.endpoint)
-        this.socket.on('sendData', (data) => {
+        let room = this.props.room;
+        let socket = this.state.socket
+        socket.on('connect', function() {
+            socket.emit('room', room);
+        });
+        socket.on('sendData', (data) => {
             if(data.length !== 0){
             this.setState({
                 init_matrix: data.init_matrix,
                 turn: data.turn,
                 gameOver: data.gameOver,
-                endpoint: "http://localhost:4001"
+                // endpoint: "http://localhost:4001"
             })
         }
     })
         this.changeStatus = this.changeStatus.bind(this)
+        this.getTurn = this.getTurn.bind(this)
+        this.resetTurn = this.resetTurn.bind(this)
     }
     changeStatus(x,y){
         let tmp = this.state.init_matrix
@@ -42,9 +121,14 @@ class Matrix extends Component{
                 turn: turn,
                 gameOver: this.checkGameOver(x,y)
             }
-            this.socket.emit('sendData', data)
+            this.getTurn(turn)
+            let socket = this.state.socket
+            socket.emit('sendData', data)
             this.getData()
         }
+    }
+    resetTurn(){
+        this.props.resetTurn()
     }
     newGame(){
         let arr = [];
@@ -57,27 +141,35 @@ class Matrix extends Component{
             turn: 1,
             gameOver: false
         })
+        this.resetTurn()
     }
     checkGameOver(x,y){
         x = parseInt(x,10)
         y = parseInt(y,10)
         let tmp = this.state.init_matrix
-        if((tmp[y][x] === tmp[y][x+1] && tmp[y][x] === tmp[y][x+2] && tmp[y][x] === tmp[y][x+3] ) ||
-            (tmp[y][x] === tmp[y][x-1] && tmp[y][x] === tmp[y][x+1] && tmp[y][x] === tmp[y][x+2] ) ||
-            (tmp[y][x] === tmp[y][x-1] && tmp[y][x] === tmp[y][x-2]　&& tmp[y][x] === tmp[y][x+1]) ||
-            (tmp[y][x] === tmp[y][x-1] && tmp[y][x] === tmp[y][x-2]　&& tmp[y][x] === tmp[y][x-3]) ||
-            (y >= 3 && tmp[y][x] === tmp[y-1][x] && tmp[y][x] === tmp[y-2][x]　&& tmp[y][x] === tmp[y-3][x]) ||
-            (y >= 2 && y<= 10 && tmp[y][x] === tmp[y-1][x] && tmp[y][x] === tmp[y+1][x] && tmp[y][x] === tmp[y-2][x]) ||
-            (y >= 1 && y<= 9 && tmp[y][x] === tmp[y-1][x] && tmp[y][x] === tmp[y+1][x] && tmp[y][x] === tmp[y+2][x]) ||
-            (y <= 8 && tmp[y][x] === tmp[y+1][x] && tmp[y][x] === tmp[y+2][x] && tmp[y][x] === tmp[y+3][x]) ||
-            (y <= 8 && tmp[y][x] === tmp[y+1][x+1] && tmp[y][x] === tmp[y+2][x+2] && tmp[y][x] === tmp[y+3][x+3]) ||
-            (y >= 1 && y<= 9 && tmp[y][x] === tmp[y-1][x-1] && tmp[y][x] === tmp[y+1][x+1] && tmp[y][x] === tmp[y+2][x+2]) ||
-            (y >= 2 && y <= 10 && tmp[y][x] === tmp[y-2][x-2] && tmp[y][x] === tmp[y-1][x-1] && tmp[y][x] === tmp[y+1][x+1]) ||
-            (y >= 3 && tmp[y][x] === tmp[y-3][x-3] && tmp[y][x] === tmp[y-2][x-2] && tmp[y][x] === tmp[y-1][x-1]) ||
-            (y <= 8 && tmp[y][x] === tmp[y+1][x-1] && tmp[y][x] === tmp[y+2][x-2] && tmp[y][x] === tmp[y+3][x-3]) ||
-            (y >= 1 && y <= 9 &&tmp[y][x] === tmp[y+2][x-2] && tmp[y][x] === tmp[y+1][x-1] && tmp[y][x] === tmp[y-1][x+1]) ||
-            (y >= 2 && y <= 10 && tmp[y][x] === tmp[y+1][x-1] && tmp[y][x] === tmp[y-1][x+1] && tmp[y][x] === tmp[y-2][x+2]) ||
-            (y >= 3 && tmp[y][x] === tmp[y-1][x+1] && tmp[y][x] === tmp[y-2][x+2] && tmp[y][x] === tmp[y-3][x+3])
+        if((tmp[y][x] === tmp[y][x+1] && tmp[y][x] === tmp[y][x+2] && tmp[y][x] === tmp[y][x+3] && tmp[y][x] === tmp[y][x+4] ) ||
+            (tmp[y][x] === tmp[y][x-1] && tmp[y][x] === tmp[y][x+1] && tmp[y][x] === tmp[y][x+2] && tmp[y][x] === tmp[y][x+3] ) ||
+            (tmp[y][x] === tmp[y][x-1] && tmp[y][x] === tmp[y][x-2]　&& tmp[y][x] === tmp[y][x+1] && tmp[y][x] === tmp[y][x+2] ) ||
+            (tmp[y][x] === tmp[y][x-1] && tmp[y][x] === tmp[y][x-2]　&& tmp[y][x] === tmp[y][x-3] && tmp[y][x] === tmp[y][x+1] ) ||
+            (tmp[y][x] === tmp[y][x-1] && tmp[y][x] === tmp[y][x-2]　&& tmp[y][x] === tmp[y][x-3] && tmp[y][x] === tmp[y][x-4] ) ||
+
+            (y >= 4 && tmp[y][x] === tmp[y-1][x] && tmp[y][x] === tmp[y-2][x]　&& tmp[y][x] === tmp[y-3][x] && tmp[y][x] === tmp[y-4][x]) ||
+            (y >= 3 && y<= 10 && tmp[y][x] === tmp[y-1][x] && tmp[y][x] === tmp[y+1][x] && tmp[y][x] === tmp[y-2][x] && tmp[y][x] === tmp[y-3][x]) ||
+            (y >= 2 && y<= 9 && tmp[y][x] === tmp[y-2][x] && tmp[y][x] === tmp[y-1][x] && tmp[y][x] === tmp[y+1][x] && tmp[y][x] === tmp[y+2][x]) ||
+            (y >= 1 && y<= 8 && tmp[y][x] === tmp[y-1][x] && tmp[y][x] === tmp[y+1][x] && tmp[y][x] === tmp[y+2][x] && tmp[y][x] === tmp[y+3][x]) ||
+            (y <= 7 && tmp[y][x] === tmp[y+1][x] && tmp[y][x] === tmp[y+2][x] && tmp[y][x] === tmp[y+3][x] && tmp[y][x] === tmp[y+4][x]) ||
+
+            (y <= 7 && tmp[y][x] === tmp[y+1][x+1] && tmp[y][x] === tmp[y+2][x+2] && tmp[y][x] === tmp[y+3][x+3] && tmp[y][x] === tmp[y+4][x+4]) ||
+            (y >= 1 && y<= 8 && tmp[y][x] === tmp[y-1][x-1] && tmp[y][x] === tmp[y+1][x+1] && tmp[y][x] === tmp[y+2][x+2] && tmp[y][x] === tmp[y+3][x+3]) ||
+            (y >= 2 && y <= 9 && tmp[y][x] === tmp[y-2][x-2] && tmp[y][x] === tmp[y-1][x-1] && tmp[y][x] === tmp[y+1][x+1] && tmp[y][x] === tmp[y+2][x+2]) ||
+            (y >= 3 && y <= 10 && tmp[y][x] === tmp[y-3][x-3] && tmp[y][x] === tmp[y-2][x-2] && tmp[y][x] === tmp[y-1][x-1] && tmp[y][x] === tmp[y+1][x+1]) ||
+            (y >= 4 && tmp[y][x] === tmp[y-3][x-3] && tmp[y][x] === tmp[y-2][x-2] && tmp[y][x] === tmp[y-1][x-1] && tmp[y][x] === tmp[y-4][x-4]) ||
+
+            (y <= 7 && tmp[y][x] === tmp[y+1][x-1] && tmp[y][x] === tmp[y+2][x-2] && tmp[y][x] === tmp[y+3][x-3] && tmp[y][x] === tmp[y+4][x-4]) ||
+            (y >= 1 && y <= 8 && tmp[y][x] === tmp[y+3][x-3] && tmp[y][x] === tmp[y+2][x-2] && tmp[y][x] === tmp[y+1][x-1] && tmp[y][x] === tmp[y-1][x+1]) ||
+            (y >= 2 && y <= 9 && tmp[y][x] === tmp[y+2][x-2] && tmp[y][x] === tmp[y+1][x-1] && tmp[y][x] === tmp[y-1][x+1] && tmp[y][x] === tmp[y-2][x+2]) ||
+            (y >= 3 && y <= 10 && tmp[y][x] === tmp[y+1][x-1] && tmp[y][x] === tmp[y-1][x+1] && tmp[y][x] === tmp[y-2][x+2] && tmp[y][x] === tmp[y-3][x+3]) ||
+            (y >= 4 && tmp[y][x] === tmp[y-1][x+1] && tmp[y][x] === tmp[y-2][x+2] && tmp[y][x] === tmp[y-3][x+3] && tmp[y][x] === tmp[y-4][x+4])
         ){
             // alert("player "+this.state.turn+" win")
             // this.setState({
@@ -88,13 +180,17 @@ class Matrix extends Component{
         else return false
     }
     getData(){
-        this.socket.on('sendData', (data) => {
+        let socket = this.state.socket
+        socket.on('sendData', (data) => {
             this.setState({
             init_matrix: data.init_matrix,
             turn: data.turn,
             gameOver: data.gameOver,
         })
     })
+    }
+    getTurn(x){
+        this.props.getTurn(x)
     }
     render(){
         let matrix_list = [];
@@ -128,13 +224,7 @@ class App extends Component {
             <header className="App-header">
             <img src={logo} className="App-logo" alt="logo" />
             </header>
-            <div className="App-intro">
-            <div className="tic-tac-toe--field">
-            <div className="tic-tac-toe--cells-matrix">
-            <Matrix/>
-            </div>
-            </div>
-            </div>
+            <Menu/>
             </div>
     );
     }

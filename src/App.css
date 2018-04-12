@@ -169,3 +169,37 @@ body .tic-tac-toe--field .tic-tac-toe--cells-matrix .tic-tac-toe-cell.oSymbol:af
   margin-left: 40%;
   margin-top: 25%;
 }
+#room_id{
+  margin-left: 25%;
+  height: 44px;
+  margin-top: 25%;
+  margin-right: 2%;
+}
+.joinboard{
+  right: 0;
+  width: 200px;
+  height: 200px;
+  position: absolute;
+  background: white;
+}
+.joinotherbutton {
+  background-color: #337ab7;
+  border-color: #2e6da4;
+  color: white;
+  width: 200px;
+  height: 100px;
+}
+oSymbol:before{
+  position: absolute;
+  display: block;
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: solid 6px #81040e;
+  width: 20px;
+  height: 20px;
+  -webkit-transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%);
+}
